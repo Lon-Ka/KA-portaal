@@ -231,6 +231,22 @@
       flex: 1; border: none; width: 100%;
     }
 
+    /* ── ROL SWITCHER ── */
+    .role-switch-btn {
+      font-family: inherit;
+      font-size: .75rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg); color: var(--muted);
+      cursor: pointer; transition: all .15s;
+    }
+    .role-switch-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .role-switch-btn.active {
+      background: var(--btn-bg, var(--accent));
+      color: var(--btn-color, #fff);
+      border-color: transparent;
+    }
+
     /* ── RESPONSIVE ── */
     @media (max-width: 600px) {
       header { padding: 0 16px; }
@@ -301,6 +317,10 @@
       <h2 id="greeting">Goedemorgen</h2>
       <p>Kies een applicatie om mee aan de slag te gaan.</p>
       <div id="role-badge-container"></div>
+      <div id="role-switcher" style="display:none; margin-top:14px;">
+        <span style="font-size:.78rem; color:var(--muted); margin-right:8px;">Bekijk als:</span>
+        <div style="display:inline-flex; flex-wrap:wrap; gap:6px;" id="role-switcher-buttons"></div>
+      </div>
     </div>
 
     <div id="apps-container">
@@ -531,11 +551,58 @@ function renderWelcome() {
     <span class="role-badge" style="background:${meta.bg}; color:${meta.color};">
       ${meta.label}
     </span>`;
+
+  // Toon rol-switcher enkel voor admins
+  if (currentRole === "admin") {
+    renderRoleSwitcher();
+  }
+}
+
+let previewRole = null; // null = eigen rol
+
+function renderRoleSwitcher() {
+  const switcher = document.getElementById("role-switcher");
+  switcher.style.display = "block";
+
+  const rollen = [
+    { key: null,             label: "Mijn rol" },
+    { key: "leerkracht",     label: "Leerkracht" },
+    { key: "directie",       label: "Directie" },
+    { key: "secretariaat",   label: "Secretariaat" },
+    { key: "zorg",           label: "Zorgleerkracht" },
+  ];
+
+  const container = document.getElementById("role-switcher-buttons");
+  container.innerHTML = rollen.map(r => {
+    const m = r.key ? (ROLE_META[r.key] || {}) : ROLE_META["admin"];
+    const isActive = previewRole === r.key;
+    return `<button class="role-switch-btn ${isActive ? 'active' : ''}"
+      style="${isActive ? `--btn-bg:${m.bg}; --btn-color:${m.color || '#fff'};` : ''}"
+      onclick="switchPreviewRole(${r.key ? `'${r.key}'` : 'null'})">${r.label}</button>`;
+  }).join("");
+}
+
+function switchPreviewRole(role) {
+  previewRole = role;
+  renderRoleSwitcher();
+
+  // Pas badge aan om preview-rol te tonen
+  const effectiveRole = previewRole || currentRole;
+  const meta = ROLE_META[effectiveRole] || ROLE_META.leerkracht;
+  const badgeEl = document.getElementById("role-badge-container");
+  const previewLabel = previewRole ? ` <span style="font-size:.7em; opacity:.7">(preview)</span>` : "";
+  badgeEl.innerHTML = `
+    <span class="role-badge" style="background:${meta.bg}; color:${meta.color};">
+      ${meta.label}${previewLabel}
+    </span>`;
+
+  renderApps();
 }
 
 function renderApps() {
+  const effectiveRole = previewRole || currentRole;
   const visible = APPS.filter(app =>
-    app.roles.length === 0 || app.roles.includes(currentRole)
+    app.roles.length === 0 || app.roles.includes(effectiveRole)
   );
 
   const container = document.getElementById("apps-container");
