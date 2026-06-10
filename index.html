@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Portaal – Scholengroep Kapelle-op-den-Bos</title>
-  <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+  <title>MijnDigiKAntoor – Scholengroep Kapelle-op-den-Bos</title>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -244,7 +244,7 @@
 
 <!-- LOADING -->
 <div id="loading-screen">
-  <div class="loader-logo">ge<span>baska</span></div>
+  <div class="loader-logo">MijnDigi<span>KAntoor</span></div>
   <div class="spinner"></div>
 </div>
 
@@ -259,10 +259,10 @@
         <rect x="6" y="18" width="8" height="8" rx="2" fill="#C05A1A"/>
         <rect x="18" y="18" width="8" height="8" rx="2" fill="#6B7A8D"/>
       </svg>
-      <span style="font-weight:700; font-size:1.1rem;">gebaska portaal</span>
+      <span style="font-weight:700; font-size:1.1rem;">MijnDigiKAntoor portaal</span>
     </div>
     <h1>Welkom</h1>
-    <p>Meld je aan met je Microsoft-account van Gebaska om toegang te krijgen tot de applicaties.</p>
+    <p>Meld je aan met je Microsoft-account van MijnDigiKAntoor om toegang te krijgen tot de applicaties.</p>
     <button class="btn-login" onclick="signIn()">
       <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
         <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
@@ -285,7 +285,7 @@
         <div class="dot" style="background:var(--mul-color)"></div>
       </div>
       <div class="header-title">
-        Gebaska Portaal
+        MijnDigiKAntoor Portaal
         <small>Scholengroep Kapelle-op-den-Bos BaO</small>
       </div>
     </div>
@@ -326,7 +326,7 @@
 // ═══════════════════════════════════════════════
 const MSAL_CONFIG = {
   auth: {
-    clientId: "44469b91-75bc-4ea6-9c2b-aaf221e68dbc",  // KA Azure App Registration
+    clientId: "b427a5ba-542f-4254-8ca0-5fa41b1d130a",  // BaO KA - Mijn DigiKAntoor
     authority: "https://login.microsoftonline.com/165074eb-b8b7-49e8-a9b4-54cac7939ed2",
     redirectUri: window.location.origin + window.location.pathname,
   },
@@ -419,11 +419,13 @@ const ROLE_META = {
 // ═══════════════════════════════════════════════
 // MSAL INIT
 // ═══════════════════════════════════════════════
-const msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+var msalApp = null;
 let currentAccount = null;
 let currentRole = null;
 
 async function msalInit() {
+  msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+  await msalApp.initialize();
   try {
     const resp = await msalApp.handleRedirectPromise();
     if (resp && resp.account) {
@@ -589,7 +591,7 @@ function showApp() {
 // ═══════════════════════════════════════════════
 // START
 // ═══════════════════════════════════════════════
-msalInit();
+window.addEventListener("DOMContentLoaded", msalInit);
 </script>
 </body>
 </html>
