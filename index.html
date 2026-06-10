@@ -345,9 +345,12 @@ const ROLE_CONFIG = {
     // "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy": "directie",
   },
   // Fallback: UPN-patronen (tijdelijk, vervang door groepen)
+  // Vaste e-mailadressen → rol-mapping
+  emails: {
+    "ict@gebaska.be": "admin",
+  },
   upnPatterns: [
     { pattern: /directie/i,         role: "directie" },
-    { pattern: /admin/i,            role: "admin" },
     { pattern: /secretariaat/i,     role: "secretariaat" },
     { pattern: /zorg/i,             role: "zorg" },
   ],
@@ -405,6 +408,30 @@ const APPS = [
     tagColor: "#7B5EA7",
     roles: [], // iedereen
   },
+  {
+    id: "ka-uitstappen",
+    title: "Schooluitstappen",
+    subtitle: "Plan en beheer schooluitstappen met goedkeuringsworkflow en budgetbewaking.",
+    icon: "🚌",
+    url: "https://lon-ka.github.io/KA-Schooluitstappen/",
+    accent: "#D97706",
+    accentLight: "#FEF3C7",
+    tag: "Uitstappen",
+    tagColor: "#D97706",
+    roles: [], // iedereen
+  },
+  {
+    id: "digikompas",
+    title: "DigiKompas LONKA",
+    subtitle: "Persoonlijke zelfscan en jaarplanner voor digitale geletterdheid.",
+    icon: "🧭",
+    url: "https://lon-ka.github.io/DigiKompas/",
+    accent: "#0891B2",
+    accentLight: "#E0F7FA",
+    tag: "Professionalisering",
+    tagColor: "#0891B2",
+    roles: [], // iedereen
+  },
 ];
 
 // ── Rol-labels & kleuren ──────────────────────
@@ -459,17 +486,19 @@ function signOut() {
 // ROL BEPALEN
 // ═══════════════════════════════════════════════
 function determineRole(account) {
-  // 1. Via claims (als groepen geconfigureerd zijn in manifest)
+  // 1. Via e-mailadres (exacte match)
+  const email = (account.username || "").toLowerCase();
+  if (ROLE_CONFIG.emails[email]) return ROLE_CONFIG.emails[email];
+  // 2. Via claims (als groepen geconfigureerd zijn in manifest)
   const claims = account.idTokenClaims || {};
   if (claims.groups && Array.isArray(claims.groups)) {
     for (const gid of claims.groups) {
       if (ROLE_CONFIG.groups[gid]) return ROLE_CONFIG.groups[gid];
     }
   }
-  // 2. Via UPN-patroon (fallback)
-  const upn = (account.username || "").toLowerCase();
+  // 3. Via UPN-patroon (fallback)
   for (const { pattern, role } of ROLE_CONFIG.upnPatterns) {
-    if (pattern.test(upn)) return role;
+    if (pattern.test(email)) return role;
   }
   return ROLE_CONFIG.defaultRole;
 }
