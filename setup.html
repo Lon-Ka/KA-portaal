@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DigiKompas – SharePoint Setup</title>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ict: #0f5c8a; --kei: #2E8B57; --mul: #C05A1A;
+      --bg: #F5F7FA; --surface: #fff; --text: #1C2B3A;
+      --muted: #6B7A8D; --border: #DDE3EC;
+      --ok: #2E8B57; --err: #c0392b; --warn: #d67b00;
+      --radius: 10px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 32px 16px; }
+    .container { max-width: 760px; margin: 0 auto; }
+    .logo-row { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+    .logo { width: 40px; height: 40px; background: #0F1D2E; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+    h1 { font-size: 1.3rem; font-weight: 700; }
+    h1 small { display: block; font-size: .8rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+
+    /* TENANT TABS */
+    .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
+    .tab { padding: 8px 20px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .tab.active { background: #0F1D2E; color: #fff; border-color: transparent; }
+
+    /* CARDS */
+    .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 24px; margin-bottom: 16px; }
+    .card h2 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+    .card p { font-size: .85rem; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+
+    /* FORM */
+    label { display: block; font-size: .8rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+    input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: inherit; font-size: .85rem; margin-bottom: 12px; }
+    input:focus { outline: none; border-color: var(--ict); }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 8px; border: none; font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: #0F1D2E; color: #fff; }
+    .btn-success { background: var(--ok); color: #fff; }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* LOG */
+    .log { margin-top: 16px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
+    .log-header { background: #0F1D2E; color: #fff; padding: 8px 14px; font-size: .75rem; font-weight: 600; letter-spacing: .05em; display: flex; justify-content: space-between; align-items: center; }
+    .log-body { background: #0F1D2E; padding: 12px 14px; max-height: 280px; overflow-y: auto; }
+    .log-line { font-family: monospace; font-size: .78rem; line-height: 1.7; color: rgba(255,255,255,.7); }
+    .log-line.ok { color: #5edc8e; }
+    .log-line.err { color: #ff6b6b; }
+    .log-line.info { color: #7ec8f7; }
+    .log-line.warn { color: #ffd97d; }
+
+    /* RESULT */
+    .result-box { background: #f0faf4; border: 1.5px solid var(--ok); border-radius: var(--radius); padding: 20px; margin-top: 16px; }
+    .result-box h3 { font-size: .95rem; font-weight: 700; color: var(--ok); margin-bottom: 12px; }
+    .result-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,.06); font-size: .82rem; }
+    .result-item:last-child { border-bottom: none; }
+    .result-key { font-weight: 600; color: var(--text); }
+    .result-val { font-family: monospace; font-size: .75rem; color: var(--muted); max-width: 420px; word-break: break-all; cursor: pointer; }
+    .result-val:hover { color: var(--ict); }
+    .copy-hint { font-size: .7rem; color: var(--muted); margin-top: 8px; }
+
+    /* STATUS BADGE */
+    .badge { display: inline-flex; align-items: center; gap: 5px; font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+    .badge-ok { background: #e8f5ee; color: var(--ok); }
+    .badge-err { background: #fdecea; color: var(--err); }
+    .badge-idle { background: var(--bg); color: var(--muted); }
+
+    /* STEP INDICATOR */
+    .steps { display: flex; gap: 0; margin-bottom: 20px; counter-reset: step; }
+    .step { flex: 1; text-align: center; font-size: .72rem; font-weight: 600; color: var(--muted); padding: 8px 4px; position: relative; }
+    .step::before { content: counter(step); counter-increment: step; display: block; width: 24px; height: 24px; border-radius: 50%; background: var(--border); color: var(--muted); font-size: .75rem; font-weight: 700; line-height: 24px; margin: 0 auto 4px; }
+    .step.active::before { background: #0F1D2E; color: #fff; }
+    .step.done::before { background: var(--ok); color: #fff; content: '✓'; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="logo-row">
+    <div class="logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <rect x="2" y="2" width="9" height="9" rx="2" fill="#1A6BB5"/>
+        <rect x="13" y="2" width="9" height="9" rx="2" fill="#2E8B57"/>
+        <rect x="2" y="13" width="9" height="9" rx="2" fill="#C05A1A"/>
+        <rect x="13" y="13" width="9" height="9" rx="2" fill="#6B7A8D"/>
+      </svg>
+    </div>
+    <h1>DigiKompas Setup
+      <small>Eenmalige configuratie van SharePoint-lijsten</small>
+    </h1>
+  </div>
+
+  <!-- TENANT TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="selectTenant('KA')">🏫 Gebaska (KA)</button>
+    <button class="tab" onclick="selectTenant('LON')">🏫 Londerwijs (LON)</button>
+  </div>
+
+  <!-- STAP INDICATOR -->
+  <div class="steps">
+    <div class="step active" id="step-1">Aanmelden</div>
+    <div class="step" id="step-2">Site zoeken</div>
+    <div class="step" id="step-3">Lijsten aanmaken</div>
+    <div class="step" id="step-4">Klaar</div>
+  </div>
+
+  <!-- STAP 1: AANMELDEN -->
+  <div class="card" id="card-login">
+    <h2>Stap 1 — Aanmelden</h2>
+    <p>Meld aan met een beheerdersaccount van de geselecteerde tenant. Je hebt <strong>Sites.ReadWrite.All</strong> permissies nodig.</p>
+    <div id="login-status" style="margin-bottom:12px;">
+      <span class="badge badge-idle" id="badge-login">⬤ Niet aangemeld</span>
+    </div>
+    <button class="btn btn-primary" id="btn-login" onclick="doLogin()">
+      <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Aanmelden met Microsoft
+    </button>
+    <button class="btn btn-outline" id="btn-logout" onclick="doLogout()" style="display:none; margin-left:8px;">Afmelden</button>
+  </div>
+
+  <!-- STAP 2: SITE -->
+  <div class="card" id="card-site" style="opacity:.4; pointer-events:none;">
+    <h2>Stap 2 — SharePoint-site</h2>
+    <p>Geef de URL van de DigiKompas-site in. De siteId wordt automatisch opgehaald.</p>
+    <label>Site URL</label>
+    <input type="text" id="site-url" placeholder="bv. gebaskabe.sharepoint.com/sites/BaOKA-DigiKompas" />
+    <button class="btn btn-primary" onclick="fetchSiteId()">Site ophalen</button>
+    <div id="site-result" style="margin-top:12px; display:none;">
+      <span class="badge badge-ok">✓ Site gevonden</span>
+      <div style="font-size:.75rem; font-family:monospace; color:var(--muted); margin-top:6px; word-break:break-all;" id="site-id-display"></div>
+    </div>
+  </div>
+
+  <!-- STAP 3: LIJSTEN -->
+  <div class="card" id="card-lists" style="opacity:.4; pointer-events:none;">
+    <h2>Stap 3 — Lijsten aanmaken</h2>
+    <p>De volgende 3 lijsten worden aangemaakt met alle benodigde kolommen. Bestaande lijsten worden overgeslagen.</p>
+
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--bg); border-radius:8px;">
+        <span style="font-size:.85rem; font-weight:600;">📊 DigiKompas_Zelfscan</span>
+        <span class="badge badge-idle" id="badge-list-1">Wacht</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--bg); border-radius:8px;">
+        <span style="font-size:.85rem; font-weight:600;">📅 DigiKompas_Jaarplan</span>
+        <span class="badge badge-idle" id="badge-list-2">Wacht</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:var(--bg); border-radius:8px;">
+        <span style="font-size:.85rem; font-weight:600;">💬 DigiKompas_Lesreflectie</span>
+        <span class="badge badge-idle" id="badge-list-3">Wacht</span>
+      </div>
+    </div>
+
+    <button class="btn btn-success" id="btn-create" onclick="createAllLists()">
+      ✦ Lijsten aanmaken
+    </button>
+
+    <div class="log" id="log-container" style="display:none;">
+      <div class="log-header">
+        <span>Logboek</span>
+        <span id="log-count" style="opacity:.6;">0 berichten</span>
+      </div>
+      <div class="log-body" id="log-body"></div>
+    </div>
+  </div>
+
+  <!-- STAP 4: RESULTAAT -->
+  <div class="card" id="card-result" style="display:none;">
+    <h2>✅ Setup voltooid!</h2>
+    <p>Kopieer deze IDs en plak ze in de DigiKompas app-configuratie.</p>
+    <div class="result-box">
+      <h3>Configuratie-IDs</h3>
+      <div id="result-content"></div>
+      <p class="copy-hint">💡 Klik op een waarde om te kopiëren</p>
+    </div>
+    <div style="margin-top:16px; padding:14px; background:#fff8e8; border:1.5px solid var(--warn); border-radius:8px; font-size:.82rem; color:#7a5200;">
+      <strong>Volgende stap:</strong> herhaal deze setup voor de andere tenant, daarna kan je de DigiKompas app configureren met beide sets van IDs.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIGURATIE PER TENANT
+// ═══════════════════════════════════════════════════════════
+const TENANTS = {
+  KA: {
+    clientId: 'b427a5ba-542f-4254-8ca0-5fa41b1d130a',
+    tenantId: '165074eb-b8b7-49e8-a9b4-54cac7939ed2',
+    defaultSiteUrl: 'gebaskabe.sharepoint.com/sites/BaOKA-DigiKompas',
+    label: 'Gebaska (KA)',
+  },
+  LON: {
+    clientId: '08dcc1b5-6041-4e67-ba6f-14650d4e6e62',
+    tenantId: '655d15e1-e5fc-4868-8462-8463dc0ff014',
+    defaultSiteUrl: 'londerwijs.sharepoint.com/sites/BaO-DigiKompas',
+    label: 'Londerwijs (LON)',
+  }
+};
+
+// ═══════════════════════════════════════════════════════════
+// LIJST DEFINITIES
+// ═══════════════════════════════════════════════════════════
+const LIST_DEFINITIONS = [
+  {
+    key: 'zelfscan',
+    name: 'DigiKompas_Zelfscan',
+    description: 'Zelfscan resultaten per leerkracht',
+    columns: [
+      { name: 'Email',      type: 'text' },
+      { name: 'Datum',      type: 'dateTime' },
+      { name: 'Fase',       type: 'text' },
+      { name: 'ScoreICT',   type: 'number' },
+      { name: 'ScoreMedia', type: 'number' },
+      { name: 'ScoreComp',  type: 'number' },
+      { name: 'Antwoorden', type: 'note' },
+    ]
+  },
+  {
+    key: 'jaarplan',
+    name: 'DigiKompas_Jaarplan',
+    description: 'Jaarplannen per leerkracht',
+    columns: [
+      { name: 'Email',    type: 'text' },
+      { name: 'Datum',    type: 'dateTime' },
+      { name: 'Fase',     type: 'text' },
+      { name: 'Leerjaar', type: 'text' },
+      { name: 'Plan',     type: 'note' },
+    ]
+  },
+  {
+    key: 'lesreflectie',
+    name: 'DigiKompas_Lesreflectie',
+    description: 'Lesreflecties na het geven van een les',
+    columns: [
+      { name: 'Email',          type: 'text' },
+      { name: 'Datum',          type: 'dateTime' },
+      { name: 'LesID',          type: 'number' },
+      { name: 'LesNaam',        type: 'text' },
+      { name: 'Fase',           type: 'text' },
+      { name: 'Leerlijn',       type: 'text' },
+      { name: 'Sterktes',       type: 'note' },
+      { name: 'Verbeterpunten', type: 'note' },
+      { name: 'Tips',           type: 'note' },
+      { name: 'Beoordeling',    type: 'number' },
+      { name: 'Anoniem',        type: 'boolean' },
+    ]
+  }
+];
+
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+let currentTenant = 'KA';
+let msalApp = null;
+let accessToken = null;
+let siteId = null;
+let listIds = {};
+let logCount = 0;
+
+// ═══════════════════════════════════════════════════════════
+// TENANT WISSELEN
+// ═══════════════════════════════════════════════════════════
+function selectTenant(t) {
+  currentTenant = t;
+  document.querySelectorAll('.tab').forEach((tab, i) => {
+    tab.classList.toggle('active', (i === 0 && t === 'KA') || (i === 1 && t === 'LON'));
+  });
+  // Reset state
+  accessToken = null; siteId = null; listIds = {};
+  msalApp = null;
+  document.getElementById('badge-login').textContent = '⬤ Niet aangemeld';
+  document.getElementById('badge-login').className = 'badge badge-idle';
+  document.getElementById('btn-login').style.display = '';
+  document.getElementById('btn-logout').style.display = 'none';
+  document.getElementById('card-site').style.opacity = '.4';
+  document.getElementById('card-site').style.pointerEvents = 'none';
+  document.getElementById('card-lists').style.opacity = '.4';
+  document.getElementById('card-lists').style.pointerEvents = 'none';
+  document.getElementById('card-result').style.display = 'none';
+  document.getElementById('site-result').style.display = 'none';
+  document.getElementById('log-container').style.display = 'none';
+  document.getElementById('log-body').innerHTML = '';
+  document.getElementById('site-url').value = TENANTS[t].defaultSiteUrl;
+  ['badge-list-1','badge-list-2','badge-list-3'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = 'Wacht'; el.className = 'badge badge-idle';
+  });
+  setStep(1);
+}
+
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`step-${i}`);
+    if (i < n) { el.className = 'step done'; }
+    else if (i === n) { el.className = 'step active'; }
+    else { el.className = 'step'; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════════════════════
+function log(msg, type = 'info') {
+  const body = document.getElementById('log-body');
+  const container = document.getElementById('log-container');
+  container.style.display = '';
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  const icons = { ok: '✓', err: '✗', info: '→', warn: '⚠' };
+  line.textContent = `${icons[type] || '→'} ${msg}`;
+  body.appendChild(line);
+  body.scrollTop = body.scrollHeight;
+  logCount++;
+  document.getElementById('log-count').textContent = `${logCount} berichten`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MSAL
+// ═══════════════════════════════════════════════════════════
+async function initMsal() {
+  const cfg = TENANTS[currentTenant];
+  msalApp = new msal.PublicClientApplication({
+    auth: {
+      clientId: cfg.clientId,
+      authority: `https://login.microsoftonline.com/${cfg.tenantId}`,
+      redirectUri: window.location.origin + window.location.pathname,
+    },
+    cache: { cacheLocation: 'sessionStorage' }
+  });
+  await msalApp.initialize();
+}
+
+async function doLogin() {
+  await initMsal();
+  try {
+    const resp = await msalApp.handleRedirectPromise();
+    if (resp) {
+      accessToken = resp.accessToken;
+      onLoggedIn(resp.account);
+      return;
+    }
+    const accounts = msalApp.getAllAccounts();
+    if (accounts.length) {
+      const r = await msalApp.acquireTokenSilent({
+        scopes: ['Sites.ReadWrite.All'],
+        account: accounts[0]
+      });
+      accessToken = r.accessToken;
+      onLoggedIn(accounts[0]);
+    } else {
+      await msalApp.loginRedirect({ scopes: ['Sites.ReadWrite.All'] });
+    }
+  } catch(e) {
+    if (e.errorCode === 'interaction_required') {
+      await msalApp.loginRedirect({ scopes: ['Sites.ReadWrite.All'] });
+    } else {
+      alert('Aanmelden mislukt: ' + e.message);
+    }
+  }
+}
+
+function onLoggedIn(account) {
+  const badge = document.getElementById('badge-login');
+  badge.textContent = `✓ Aangemeld als ${account.username}`;
+  badge.className = 'badge badge-ok';
+  document.getElementById('btn-login').style.display = 'none';
+  document.getElementById('btn-logout').style.display = '';
+  document.getElementById('card-site').style.opacity = '1';
+  document.getElementById('card-site').style.pointerEvents = '';
+  document.getElementById('site-url').value = TENANTS[currentTenant].defaultSiteUrl;
+  setStep(2);
+}
+
+function doLogout() {
+  msalApp?.logoutRedirect({ postLogoutRedirectUri: window.location.href });
+}
+
+// ═══════════════════════════════════════════════════════════
+// GRAPH API HELPERS
+// ═══════════════════════════════════════════════════════════
+async function graphGet(url) {
+  const r = await fetch(`https://graph.microsoft.com/v1.0${url}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+async function graphPost(url, body) {
+  const r = await fetch(`https://graph.microsoft.com/v1.0${url}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+// ═══════════════════════════════════════════════════════════
+// STAP 2: SITE ID OPHALEN
+// ═══════════════════════════════════════════════════════════
+async function fetchSiteId() {
+  const url = document.getElementById('site-url').value.trim();
+  if (!url) { alert('Vul een site URL in.'); return; }
+
+  try {
+    // Normaliseer URL
+    const clean = url.replace('https://', '').replace('http://','');
+    const parts = clean.split('/sites/');
+    if (parts.length < 2) throw new Error('Ongeldige URL — verwacht: hostname/sites/sitenaam');
+    const hostname = parts[0];
+    const sitepath = parts[1];
+
+    const data = await graphGet(`/sites/${hostname}:/sites/${sitepath}`);
+    siteId = data.id;
+    document.getElementById('site-id-display').textContent = siteId;
+    document.getElementById('site-result').style.display = '';
+    document.getElementById('card-lists').style.opacity = '1';
+    document.getElementById('card-lists').style.pointerEvents = '';
+    setStep(3);
+    log(`Site gevonden: ${data.displayName}`, 'ok');
+    log(`SiteId: ${siteId}`, 'info');
+  } catch(e) {
+    alert('Site niet gevonden: ' + e.message);
+    log('Fout bij ophalen site: ' + e.message, 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// STAP 3: LIJSTEN AANMAKEN
+// ═══════════════════════════════════════════════════════════
+function columnDef(name, type) {
+  const base = { name };
+  if (type === 'text') return { ...base, text: {} };
+  if (type === 'note') return { ...base, text: { allowMultipleLines: true } };
+  if (type === 'number') return { ...base, number: {} };
+  if (type === 'boolean') return { ...base, boolean: {} };
+  if (type === 'dateTime') return { ...base, dateTime: { format: 'dateTime' } };
+  return base;
+}
+
+async function createAllLists() {
+  const btn = document.getElementById('btn-create');
+  btn.disabled = true;
+  btn.textContent = 'Bezig…';
+  logCount = 0;
+
+  for (let i = 0; i < LIST_DEFINITIONS.length; i++) {
+    const def = LIST_DEFINITIONS[i];
+    const badge = document.getElementById(`badge-list-${i + 1}`);
+    badge.textContent = 'Bezig…';
+    badge.className = 'badge badge-idle';
+
+    try {
+      log(`Aanmaken: ${def.name}…`, 'info');
+
+      // Check of lijst al bestaat
+      let existingId = null;
+      try {
+        const existing = await graphGet(`/sites/${siteId}/lists?$filter=displayName eq '${def.name}'`);
+        if (existing.value && existing.value.length > 0) {
+          existingId = existing.value[0].id;
+          log(`${def.name} bestaat al → overgeslagen`, 'warn');
+        }
+      } catch(e) {}
+
+      if (!existingId) {
+        // Lijst aanmaken
+        const list = await graphPost(`/sites/${siteId}/lists`, {
+          displayName: def.name,
+          description: def.description,
+          list: { template: 'genericList' }
+        });
+        existingId = list.id;
+        log(`${def.name} aangemaakt`, 'ok');
+
+        // Kolommen toevoegen
+        for (const col of def.columns) {
+          try {
+            await graphPost(`/sites/${siteId}/lists/${existingId}/columns`, columnDef(col.name, col.type));
+            log(`  Kolom '${col.name}' (${col.type}) toegevoegd`, 'ok');
+          } catch(e) {
+            log(`  Kolom '${col.name}' overgeslagen: ${e.message}`, 'warn');
+          }
+        }
+      }
+
+      listIds[def.key] = existingId;
+      badge.textContent = '✓ Klaar';
+      badge.className = 'badge badge-ok';
+
+    } catch(e) {
+      log(`Fout bij ${def.name}: ${e.message}`, 'err');
+      badge.textContent = '✗ Fout';
+      badge.className = 'badge badge-err';
+    }
+  }
+
+  // Resultaat tonen
+  showResult();
+  btn.disabled = false;
+  btn.textContent = '✦ Lijsten aanmaken';
+  setStep(4);
+}
+
+// ═══════════════════════════════════════════════════════════
+// STAP 4: RESULTAAT
+// ═══════════════════════════════════════════════════════════
+function showResult() {
+  const tenant = currentTenant;
+  const cfg = TENANTS[tenant];
+  const siteUrl = document.getElementById('site-url').value.trim();
+
+  const items = [
+    { key: `[${tenant}] siteUrl`, val: siteUrl },
+    { key: `[${tenant}] siteId`, val: siteId },
+    { key: `[${tenant}] lijstId — Zelfscan`, val: listIds.zelfscan || '—' },
+    { key: `[${tenant}] lijstId — Jaarplan`, val: listIds.jaarplan || '—' },
+    { key: `[${tenant}] lijstId — Lesreflectie`, val: listIds.lesreflectie || '—' },
+  ];
+
+  const html = items.map(({ key, val }) => `
+    <div class="result-item">
+      <span class="result-key">${key}</span>
+      <span class="result-val" onclick="copyVal(this)" title="Klik om te kopiëren">${val}</span>
+    </div>`).join('');
+
+  document.getElementById('result-content').innerHTML = html;
+  document.getElementById('card-result').style.display = '';
+  log('✅ Setup voltooid! Scroll naar beneden voor de configuratie-IDs.', 'ok');
+}
+
+function copyVal(el) {
+  navigator.clipboard.writeText(el.textContent).then(() => {
+    const orig = el.textContent;
+    el.textContent = '✓ Gekopieerd!';
+    el.style.color = 'var(--ok)';
+    setTimeout(() => { el.textContent = orig; el.style.color = ''; }, 1500);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('site-url').value = TENANTS['KA'].defaultSiteUrl;
+
+  // Check voor redirect na login
+  try {
+    await initMsal();
+    const resp = await msalApp.handleRedirectPromise();
+    if (resp) {
+      accessToken = resp.accessToken;
+      onLoggedIn(resp.account);
+    }
+  } catch(e) {}
+});
+</script>
+</body>
+</html>
