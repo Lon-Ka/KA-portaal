@@ -331,7 +331,7 @@ async function initMsal() {
     auth: {
       clientId: cfg.clientId,
       authority: `https://login.microsoftonline.com/${cfg.tenantId}`,
-      redirectUri: window.location.origin + window.location.pathname,
+      redirectUri: 'https://lon-ka.github.io/KA-portaal/setup.html',
     },
     cache: { cacheLocation: 'sessionStorage' }
   });
