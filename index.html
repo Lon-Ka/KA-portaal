@@ -379,19 +379,41 @@ const ROLE_CONFIG = {
 
 // ── App-definitie ─────────────────────────────
 // roles: [] = zichtbaar voor iedereen
+// ═══════════════════════════════════════════════
+// APP-DEFINITIE
+// Velden:
+//   id          – unieke sleutel
+//   title       – naam op de kaart
+//   subtitle    – korte omschrijving
+//   icon        – emoji
+//   url         – GitHub Pages URL van de app
+//   accent      – kleur van de bovenste balk op de kaart
+//   accentLight – achtergrond van het icoon
+//   tag         – label op de kaart (vrije tekst)
+//   tagColor    – kleur van het label
+//   roles       – [] = iedereen, anders lijst van rollen
+//   school      – optioneel: "De Kei" | "Het Kiezeltje" | "'t Mulderke" | null
+//   category    – optioneel: voor toekomstige groepering
+//
+// ➕ Nieuwe app toevoegen: kopieer een blok hieronder en pas aan.
+// ═══════════════════════════════════════════════
 const APPS = [
+  // ── Veiligheid & Welzijn ─────────────────────
   {
     id: "ka-meldpunt",
     title: "Meldpunt",
     subtitle: "Meld veiligheids- en welzijnsincidenten en andere voorvallen.",
     icon: "🛡️",
-    url: "https://lon-ka.github.io/KA-Meldpunt-2026/",
+    url: "https://lon-ka.github.io/KA-Meldpunt/",
     accent: "#C05A1A",
     accentLight: "#FEF0E7",
     tag: "Veiligheid & Welzijn",
     tagColor: "#C05A1A",
-    roles: [], // iedereen
+    roles: [],
+    school: null,
+    category: "welzijn",
   },
+  // ── Financieel ───────────────────────────────
   {
     id: "ka-onkosten",
     title: "Onkostennota's",
@@ -402,8 +424,11 @@ const APPS = [
     accentLight: "#E8F5EE",
     tag: "Financieel",
     tagColor: "#2E8B57",
-    roles: [], // iedereen
+    roles: [],
+    school: null,
+    category: "financieel",
   },
+  // ── Personeelsbeheer ─────────────────────────
   {
     id: "ka-volgsysteem",
     title: "Leerkrachten Volgsysteem",
@@ -414,32 +439,40 @@ const APPS = [
     accentLight: "#EBF3FF",
     tag: "Personeelsbeheer",
     tagColor: "#1A6BB5",
-    roles: ["admin", "directie", "secretariaat"], // beperkt
+    roles: ["admin", "directie", "secretariaat"],
+    school: null,
+    category: "personeel",
   },
-  {
-    id: "ka-agenda",
-    title: "Digitale Agenda – De Kei",
-    subtitle: "Bekijk en beheer schoolactiviteiten en evenementen voor De Kei.",
-    icon: "📅",
-    url: "https://lon-ka.github.io/KA-Agenda/",  // ← pas URL aan
-    accent: "#7B5EA7",
-    accentLight: "#F0EBF8",
-    tag: "Planning",
-    tagColor: "#7B5EA7",
-    roles: [], // iedereen
-  },
+  // ── Planning ─────────────────────────────────
   {
     id: "ka-uitstappen",
     title: "Schooluitstappen",
     subtitle: "Plan en beheer schooluitstappen met goedkeuringsworkflow en budgetbewaking.",
     icon: "🚌",
     url: "https://lon-ka.github.io/KA-Schooluitstappen/",
-    accent: "#D97706",
-    accentLight: "#FEF3C7",
+    accent: "#7B5EA7",
+    accentLight: "#F0EBF8",
     tag: "Planning",
     tagColor: "#7B5EA7",
-    roles: [], // iedereen
+    roles: [],
+    school: null,
+    category: "planning",
   },
+  {
+    id: "ka-agenda",
+    title: "Digitale Agenda",
+    subtitle: "Bekijk en beheer schoolactiviteiten en evenementen.",
+    icon: "📅",
+    url: "https://lon-ka.github.io/KA-Agenda/",
+    accent: "#7B5EA7",
+    accentLight: "#F0EBF8",
+    tag: "Planning",
+    tagColor: "#7B5EA7",
+    roles: [],
+    school: "De Kei",
+    category: "planning",
+  },
+  // ── Professionalisering ──────────────────────
   {
     id: "digikompas",
     title: "DigiKompas LONKA",
@@ -450,8 +483,25 @@ const APPS = [
     accentLight: "#E0F7FA",
     tag: "Professionalisering",
     tagColor: "#0891B2",
-    roles: [], // iedereen
+    roles: [],
+    school: null,
+    category: "professionalisering",
   },
+  // ── Hier nieuwe apps toevoegen ───────────────
+  // {
+  //   id: "ka-nieuwe-app",
+  //   title: "Nieuwe App",
+  //   subtitle: "Omschrijving.",
+  //   icon: "🔧",
+  //   url: "https://lon-ka.github.io/KA-NieuweApp/",
+  //   accent: "#...",
+  //   accentLight: "#...",
+  //   tag: "Categorie",
+  //   tagColor: "#...",
+  //   roles: [],        // [] = iedereen, of bv. ["admin", "directie"]
+  //   school: null,     // of "De Kei" / "Het Kiezeltje" / "'t Mulderke"
+  //   category: "...", // welzijn | financieel | personeel | planning | professionalisering
+  // },
 ];
 
 // ── Rol-labels & kleuren ──────────────────────
@@ -634,6 +684,16 @@ function renderApps() {
 }
 
 function cardHTML(app) {
+  const schoolColors = {
+    "De Kei":        { bg: "#E8F5EE", color: "#2E8B57" },
+    "Het Kiezeltje": { bg: "#EBF3FF", color: "#1A6BB5" },
+    "'t Mulderke":   { bg: "#FEF0E7", color: "#C05A1A" },
+  };
+  const sc = app.school ? schoolColors[app.school] || {} : null;
+  const schoolBadge = sc
+    ? `<span class="card-tag" style="background:${sc.bg}; color:${sc.color};">🏫 ${app.school}</span>`
+    : "";
+
   return `
     <a class="app-card" href="#" onclick="openApp('${app.id}'); return false;"
        style="--card-accent:${app.accent}; --card-accent-light:${app.accentLight};">
@@ -643,7 +703,10 @@ function cardHTML(app) {
         <p>${app.subtitle}</p>
       </div>
       <div class="card-footer">
-        <span class="card-tag" style="background:${app.accentLight}; color:${app.tagColor};">${app.tag}</span>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <span class="card-tag" style="background:${app.accentLight}; color:${app.tagColor};">${app.tag}</span>
+          ${schoolBadge}
+        </div>
         <span class="card-arrow">→</span>
       </div>
     </a>`;
