@@ -496,11 +496,11 @@ const APPS = [
     url: "https://lon-ka.github.io/KA-Leerkrachten/",
     accent: "#1A6BB5",
     accentLight: "#EBF3FF",
-    tag: "Personeelsbeheer",
+    tag: "Directie & Beheer",
     tagColor: "#1A6BB5",
     roles: ["admin", "directie"],
     school: null,
-    category: "personeel",
+    category: "beheer",
   },
   // ── Planning ─────────────────────────────────
   {
@@ -527,7 +527,7 @@ const APPS = [
     accentLight: "#F0EBF8",
     tag: "Planning",
     tagColor: "#7B5EA7",
-    roles: [],
+    roles: ["leerkracht", "directie", "admin"],
     school: "De Kei",
     category: "planning",
   },
@@ -953,7 +953,7 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHelp();
       <div class="help-role-row"><div class="help-role-badge" style="background:#7B5EA7">'t Mulderke</div><div class="help-role-desc">Kleuterschool en lagere school</div></div>
       <h4>Rollen</h4>
       
-      <div class="help-role-row"><div class="help-role-badge" style="background:#555">Leerkracht</div><div class="help-role-desc">Meldpunt, Onkosten, Schooluitstappen, Sociogram, DigiKompas</div></div>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#555">Leerkracht</div><div class="help-role-desc">Meldpunt, Onkosten, Schooluitstappen, DigiKompas, Digitale Agenda</div></div>
       <div class="help-role-row"><div class="help-role-badge" style="background:#C05A1A">Secretariaat</div><div class="help-role-desc">Meldpunt, Onkosten, Schooluitstappen</div></div>
       <div class="help-role-row"><div class="help-role-badge" style="background:#1A6BB5">Directie</div><div class="help-role-desc">Alle apps inclusief Leerkrachten Volgsysteem, Meldpunt Beheer en Leerkrachten Beheer</div></div>
       <div class="help-role-row"><div class="help-role-badge" style="background:#1A6B4A">Systeembeheer</div><div class="help-role-desc">Alle apps — volledige toegang inclusief beheer en instellingen</div></div>
