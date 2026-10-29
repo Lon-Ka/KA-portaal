@@ -829,7 +829,7 @@ function openApp(id) {
   if (account) {
     msalApp.acquireTokenSilent({ scopes: ["Sites.ReadWrite.All"], account })
       .then(r => {
-        frame.onload = () => {
+        const sendToken = () => {
           if (frame.contentWindow) {
             frame.contentWindow.postMessage(
               { type: "MSAL_TOKEN", token: r.accessToken, email: account.username || "" },
@@ -837,7 +837,15 @@ function openApp(id) {
             );
           }
         };
+        frame.onload = sendToken;
         frame.src = app.url;
+        // Luister naar APP_READY: iframe vraagt token opnieuw als het te laat klaar was
+        const readyHandler = (ev) => {
+          if (ev.data && ev.data.type === 'APP_READY') { sendToken(); }
+        };
+        window.addEventListener('message', readyHandler);
+        // Verwijder listener als overlay sluit
+        frame._readyHandler = readyHandler;
       })
       .catch(e => {
         console.warn("Token ophalen mislukt:", e);
